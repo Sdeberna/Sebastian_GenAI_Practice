@@ -1,0 +1,1 @@
+- [Prototype scope](prototype-scope.md) — class assignment uses simulated inline email assistance, not live AI or system-wide integration.

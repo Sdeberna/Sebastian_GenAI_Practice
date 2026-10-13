@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Inline Email Assistant"
+description = "A single-screen class prototype demonstrating a simulated inline AI writing assistant in an email reply composer, with editable prepared suggestions."
+version = "1.0.0"
+id = "artifacts/inline-email-assistant"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24085
+
+[services.development]
+run = "pnpm --filter @workspace/inline-email-assistant run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/inline-email-assistant", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/inline-email-assistant/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24085"
+BASE_PATH = "/"
