@@ -36,6 +36,8 @@ PORT=5173 BASE_PATH=/ pnpm --filter @workspace/inline-email-assistant run dev
 ```
 
 Open `http://localhost:5173/`.
+## Demo Video
+**Draft prototype demo: https://drive.google.com/drive/folders/1RQIuAQNEb7Hrb4Tg5ukXBJsKz1yfo094?usp=sharing
 
 ## Simulated AI
 
