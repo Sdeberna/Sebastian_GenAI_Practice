@@ -14,3 +14,9 @@ Record completed test results only after executing or verifying the user-facing 
 **Why:** The user explicitly requires observed behavior and Pass/Partial/Fail results in the assignment README.
 
 **How to apply:** When changing the assessed flow, verify the typical, challenge, and empty-input cases before updating their results.
+
+Do not treat unsupported instructions as permission to substitute a prepared decline. Prefer a conservative unsupported notice and manual recovery over guessing intent.
+
+**Why:** Peer feedback supplied by the user identified an opposite-meaning trust failure: “Say yes, Thursday at 2 PM works for me” previously returned a decline. This revision intentionally favors honest scope limits over apparent flexibility.
+
+**How to apply:** Keep the simulation boundary explicit when expanding examples; verify contradictory and custom scheduling requests, preserve manual review/edit/cancel, and keep arbitrary requests and calendar integration deferred unless separately authorized.

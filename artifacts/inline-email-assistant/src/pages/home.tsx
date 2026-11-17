@@ -8,6 +8,8 @@ export default function Home() {
   const [instruction, setInstruction] = useState('');
   const [submitted, setSubmitted] = useState('');
   const [error, setError] = useState('');
+  const [unsupported, setUnsupported] = useState(false);
+  const [confirmation, setConfirmation] = useState('');
   const [status, setStatus] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
   const [idx, setIdx] = useState(0);
@@ -33,6 +35,8 @@ export default function Home() {
   });
 
   const generate = () => {
+    setConfirmation('');
+    setUnsupported(false);
     if (!instruction.trim()) {
       setError('Enter an instruction first, for example: decline Thursday and propose Friday after 3 PM.');
       setStatus('');
@@ -40,9 +44,16 @@ export default function Home() {
       return;
     }
     setError('');
+    const selected = selectScenario(instruction);
+    if (selected === null) {
+      setUnsupported(true);
+      setPhase('idle');
+      setStatus('');
+      instrRef.current?.focus();
+      return;
+    }
     setSubmitted(instruction);
     setIdx(0);
-    const selected = selectScenario(instruction);
     setScenario(selected);
     setText(PREPARED_REPLIES[selected][0]);
     setConfirmRegenerate(false);
@@ -66,12 +77,24 @@ export default function Home() {
     if (!text.trim()) return;
     setReply(text); setPhase('idle'); setInstruction(''); setSubmitted('');
     setShowInstruction(false); setConfirmRegenerate(false);
+    setConfirmation('Added to your draft. You can keep editing below.');
     setStatus('Suggestion inserted into your reply draft.');
     focusTarget.current = 'reply';
   };
   const startNewInstruction = () => {
     setShowInstruction(true); setInstruction(''); setError('');
+    setConfirmation(''); setUnsupported(false);
     setStatus('New instruction ready. Your draft is preserved until you accept a replacement.');
+    focusTarget.current = 'instr';
+  };
+  const continueManually = () => {
+    setReply((current) => current ?? '');
+    setShowInstruction(false); setUnsupported(false); setError(''); setConfirmation('');
+    setStatus('Manual editing ready. Your draft has not been replaced.');
+    focusTarget.current = 'reply';
+  };
+  const useExample = (example: string) => {
+    setInstruction(example); setError(''); setUnsupported(false);
     focusTarget.current = 'instr';
   };
 
@@ -88,7 +111,7 @@ export default function Home() {
           </span>
         </header>
         <p className="text-xs text-muted-foreground" data-testid="simulation-notice">
-          Wizard-of-Oz demo: prepared responses, not a live AI model. The keyword “class” selects a friendly class-conflict reply; other instructions select the scheduling reply. No open-ended understanding.
+          Wizard-of-Oz demo: prepared responses, not a live AI model. Only listed example instructions are supported; no language understanding, calendar access, or custom scheduling.
         </p>
 
         <article className="rounded-xl border border-card-border bg-card p-5" aria-label="Received email" data-testid="card-received-email">
@@ -110,10 +133,10 @@ export default function Home() {
                 id="instruction"
                 rows={2}
                 value={instruction}
-                onChange={(e) => { setInstruction(e.target.value); if (error) setError(''); }}
+                onChange={(e) => { setInstruction(e.target.value); setError(''); setUnsupported(false); }}
                 placeholder={`Example: ${EXAMPLES.typical}`}
-                aria-invalid={!!error}
-                aria-describedby={error ? 'instruction-error instruction-hint' : 'instruction-hint'}
+                aria-invalid={!!error || unsupported}
+                aria-describedby={`${error ? 'instruction-error ' : ''}${unsupported ? 'unsupported-notice ' : ''}instruction-hint`}
                 className="block w-full resize-none rounded-xl bg-transparent p-3 pb-12 text-[15px] outline-none placeholder:text-muted-foreground"
                 data-testid="input-instruction"
               />
@@ -131,10 +154,25 @@ export default function Home() {
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />{error}
               </p>
             )}
+            {unsupported && (
+              <div id="unsupported-notice" role="alert" className="mt-2 rounded-md border border-border bg-accent p-3 text-sm" data-testid="unsupported-notice">
+                <p className="font-medium">This prepared-response prototype does not support that instruction.</p>
+                <p className="mt-1">No suggestion was inserted. It only demonstrates declining Thursday at 2 PM and proposing Friday after 3 PM, optionally with a friendly class-conflict explanation. It matches listed examples, not intent. Edit your instruction using an example below, or continue editing manually.</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button type="button" className={ghost} onClick={() => instrRef.current?.focus()}>Edit instruction</button>
+                  <button type="button" className={ghost} onClick={continueManually} data-testid="button-manual">Continue manually</button>
+                </div>
+              </div>
+            )}
             <p id="instruction-hint" className="mt-1.5 text-xs text-muted-foreground">
-              Try “{EXAMPLES.typical}” or “{EXAMPLES.challenge}”.
+              Supported demo only: decline Thursday at 2 PM, propose Friday after 3 PM; optionally explain a class in a friendly tone. Use a listed example (case, spacing, and final punctuation may vary). Other wording or schedules are unsupported.
               {reply !== null && ' Your existing draft stays editable; accepting a new suggestion replaces it.'}
             </p>
+            <div className="mt-2 flex flex-col items-start gap-1" aria-label="Supported example instructions">
+              {Object.entries(EXAMPLES).map(([key, example]) => (
+                <button key={key} type="button" onClick={() => useExample(example)} className="text-left text-xs text-primary underline underline-offset-2 focus-visible:outline-2" data-testid={`example-${key}`}>Use example: {example}</button>
+              ))}
+            </div>
           </div>}
 
           {phase !== 'idle' && (
@@ -143,6 +181,7 @@ export default function Home() {
                 <span className="flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5" aria-hidden="true" />Suggestion (simulated)</span>
                 <span>{scenario === 'challenge' ? 'Class conflict' : 'Scheduling'} · {idx + 1} of {suggestions.length}</span>
               </div>
+              <p className="mb-3 text-xs text-accent-foreground" data-testid="prepared-notice">Prepared response: decline Thursday, propose Friday{scenario === 'challenge' ? ', explain a class in a friendly tone' : ''}. Not what you asked? Edit or Cancel.</p>
               {phase === 'editing' ? (
                 <>
                   <label htmlFor="suggestion-edit" className="sr-only">Edit suggestion</label>
@@ -174,8 +213,9 @@ export default function Home() {
 
           {reply !== null && (
             <div className="rise" data-testid="composer">
+              {confirmation && <p role="status" className="mb-2 text-sm font-medium text-primary" data-testid="accept-confirmation">{confirmation}</p>}
               <label htmlFor="reply" className="mb-1.5 block text-sm font-medium">Your reply draft</label>
-              <textarea ref={replyRef} id="reply" rows={4} value={reply} onChange={(e) => setReply(e.target.value)}
+              <textarea ref={replyRef} id="reply" rows={4} value={reply} onChange={(e) => { setReply(e.target.value); setConfirmation(''); }}
                 className="w-full rounded-xl border border-input bg-card p-3 text-[15px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring/40" data-testid="input-reply" />
               <p className="mt-1.5 text-xs text-muted-foreground">Draft only. This prototype does not send email.</p>
               {phase === 'idle' && !showInstruction && <button type="button" onClick={startNewInstruction} className={`${ghost} mt-2`} data-testid="button-new-instruction"><Sparkles className="h-4 w-4" aria-hidden="true" />New AI instruction</button>}
